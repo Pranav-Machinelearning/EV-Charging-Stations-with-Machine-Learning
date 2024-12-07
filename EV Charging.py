@@ -1,207 +1,324 @@
-# Import necessary libraries.
 import pandas as pd
 
-# Load the CSV file
-path = "C:\\Users\\prana\\Downloads\\nnn\\NLP\\Electric_Vehicle_Charging_Stations.csv"
-EV_Data = pd.read_csv(path)
+# Define column headers
+columns = [
+    "start_date", "station_name", "charging_time_hh_mm_ss", "energy_kwh",
+    "address_1", "address_2", "city", "state_province", "zip_postal_code",
+    "fee", "model_number", "latitude", "longitude", "geopoint"
+]
 
-# Show the initial rows and essential information to comprehend the structure of the dataset.
-print(EV_Data.head())
-print(EV_Data.info())
+# Load the original CSV file, treating the first line as data if it contains no headers
+input_file_path = 'C:\\Users\\prana\\Downloads\\electric-vehicle-charging-stations 2000.csv'  # Replace with your actual file path
+data = pd.read_csv(input_file_path, header=None)
 
-""" preprcoess the Data - 
-1.Drop unnecessary columns.
-2. Convert categorical features like City to numeric codes for modeling.
-3. Handle any missing values if present.  """
+# Remove the first row
+data = data.iloc[1:]
 
-""" Drop columns that may not be useful for the modeling process - Removes columns that don’t provide useful information for the model. 
-'Station Name', 'Street Address', and 'EV Other Info' are dropped. """
+if set(data.iloc[0]) == set(columns):
+    # Drop the first row if it matches the headers
+    data = data.iloc[1:]
 
-# code explains
-""" axis=1: Specifies that we're dropping columns (instead of rows).
-errors='ignore': Ensures that if a column doesn’t exist in the dataset, it won’t raise an error (useful for making the code more adaptable). """
+# Split the single column into multiple columns based on semicolon delimiter
+processed_data = data[0].str.split(';', expand=True)
 
-EV_Data = EV_Data.drop(['Station Name', 'Street Address', 'EV Other Info'], axis=1, errors='ignore')  
+# Assign the defined column names to the DataFrame
+processed_data.columns = columns
 
-# Handle categorical EV_Data if needed
-# Encodes categorical values in the 'City' column as numeric values, which are easier for machine learning models to interpret.
+# Save the processed DataFrame to a new CSV file
+output_file_path = 'C:\\Users\\prana\\Downloads\\Dissertation.csv'
+processed_data.to_csv(output_file_path, index=False)
 
-# code explains
-""" .cat.codes: Assigns a unique numeric code to each category (e.g., each city) in the column. This replaces city names with numeric codes (e.g., 0, 1, 2)
-astype('category'): Converts the column into a category datatype. """
-
-if 'City' in EV_Data.columns:
-    EV_Data['City'] = EV_Data['City'].astype('category').cat.codes
-
-# Check and fill missing values
-EV_Data.fillna(0, inplace=True)
-
-# Use Feature engineering.
-"""retrieved the "New Georeferenced Column"'s latitude and longitude information and divided it up into new columns. 
- These coordinates will be helpful in identifying underserved areas that may benefit from additional EV chargers."""
-
- # Extract Latitude and Longitude from 'New Georeferenced Column'
-""" The str.extract() function uses a regular expression to capture the values inside the POINT column as separate longitude and latitude components.
-The resulting columns are converted to numeric values, which is helpful in case of invalid entries (which would become NaN). """
-
-EV_Data[['Longitude', 'Latitude']] = EV_Data['New Georeferenced Column'].str.extract(r'POINT \(([^ ]+) ([^ ]+)\)')
-
-# Convert the Longitude and Latitude columns to numeric types
-
-EV_Data['Longitude'] = pd.to_numeric(EV_Data['Longitude'], errors='coerce')
-EV_Data['Latitude'] = pd.to_numeric(EV_Data['Latitude'], errors='coerce')
-
-# Display the updated dataset with separate Latitude and Longitude columns
-print(EV_Data.head())
-
-from sklearn.preprocessing import StandardScaler
+# Import necessary libraries
+import pandas as pd
+import numpy as np
+import seaborn as sns
 import folium
+from folium.plugins import HeatMap
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.metrics import classification_report
+from sklearn.neighbors import NearestNeighbors
+import matplotlib.pyplot as plt
 
-# Set map center to the mean coordinates
-center_lat, center_lon = EV_Data['Latitude'].mean(), EV_Data['Longitude'].mean()
-ev_map = folium.Map(location=[center_lat, center_lon], zoom_start=10)
+# Load the dataset
+file_path = 'C:\\Users\\prana\\Downloads\\nnn\\NLP\\Dissertation.csv' 
+data = pd.read_csv(file_path)
 
-# Add each charging station as a marker on the map
-for _, row in EV_Data.iterrows():
-    popup_text = (f"City: {row['City']}, Level 1: {row['EV Level1 EVSE Num']}, "
-                  f"Level 2: {row['EV Level2 EVSE Num']}, DC Fast: {row['EV DC Fast Count']}")
-    folium.Marker(
-        location=[row['Latitude'], row['Longitude']],
-        popup=popup_text
-    ).add_to(ev_map)
+# 1. Basic Data Overview
+print("Dataset Shape:", data.shape)  # Rows and Columns
+print("Column Info:")
+print(data.info())  # Data types and non-null counts
+print("Summary Statistics:")
+print(data.describe())  # Descriptive statistics for numerical features
 
-# Save the map as HTML
-ev_map.save('ev_charging_stations_map.html')
+
+# Check for missing values
+missing_values = data.isnull().sum()
+print("\nMissing Values:\n", missing_values)
+
+# 2. Exploratory Data Analysis (EDA)
+# Visualize missing data
+sns.heatmap(data.isnull(), cbar=False, cmap='viridis')
+plt.title("Missing Values Heatmap")
+plt.show()
+
+#data Cleaning
+# Drop the specified columns
+data = data.drop(['fee', 'state_province', 'city'], axis=1)
+
+# Verify the columns have been removed
+print("Remaining Columns:", data.columns)
+
+# Plot distributions for numerical columns
+numerical_columns = data.select_dtypes(include=['float64', 'int64']).columns
+for col in numerical_columns:
+    plt.figure(figsize=(6, 4))
+    sns.histplot(data[col], kde=True)
+    plt.title(f"Distribution of {col}")
+    plt.show()
+
+
+# Select only numerical columns for correlation matrix
+numerical_columns = data.select_dtypes(include=['float64', 'int64']).columns
+correlation_matrix = data[numerical_columns].corr()
+
+# Plot the correlation heatmap
+plt.figure(figsize=(10, 8))
+sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm')
+plt.title("Correlation Heatmap")
+plt.show()
+
+# Visualizing Geographic Distribution of EV Charging Stations (using latitude and longitude)
+map = folium.Map(location=[data['latitude'].mean(), data['longitude'].mean()], zoom_start=10)
+heat_data = [[row['latitude'], row['longitude']] for index, row in data.iterrows()]
+HeatMap(heat_data).add_to(map)
+map.save("ev_charger_distribution.html")
 
 from IPython.display import IFrame
+IFrame("ev_charger_distribution.html", width=800, height=600)
 
-# Display the saved HTML map file in the notebook
-IFrame('ev_charging_stations_map.html', width=1000, height=500)
+# Bar plots for categorical features
+categorical_columns = data.select_dtypes(include=['object']).columns
+for col in categorical_columns:
+    plt.figure(figsize=(12, 6))
+    sns.countplot(y=col, data=data, palette='viridis')
+    plt.title(f"Count of {col}")
+    plt.show()
 
-# ************************************************************************************************************************************
+# Handle missing values (example: fillna with median for numerical, mode for categorical)
+data[numerical_columns] = data[numerical_columns].fillna(data[numerical_columns].median())
+for col in categorical_columns:
+    data[col] = data[col].fillna(data[col].mode()[0])
 
-from sklearn.impute import SimpleImputer
-import pandas as pd
+print(data)
+
+from sklearn.preprocessing import LabelEncoder, StandardScaler
 import numpy as np
-from sklearn.cluster import KMeans
-from sklearn.preprocessing import StandardScaler
-import folium
 
-# Replace 'NONE' with NaN and convert columns to float
-EV_Data[['EV Level1 EVSE Num', 'EV Level2 EVSE Num', 'EV DC Fast Count']] = (
-    EV_Data[['EV Level1 EVSE Num', 'EV Level2 EVSE Num', 'EV DC Fast Count']].replace('NONE', np.nan).astype(float)
-)
+# Separate numeric columns and categorical columns
+numeric_cols = data.select_dtypes(include=[np.number]).columns
+categorical_cols = data.select_dtypes(exclude=[np.number]).columns
 
-# Impute missing values with the mean of each column
-imputer = SimpleImputer(strategy='mean')
-EV_Data[['EV Level1 EVSE Num', 'EV Level2 EVSE Num', 'EV DC Fast Count', 'Latitude', 'Longitude']] = imputer.fit_transform(
-    EV_Data[['EV Level1 EVSE Num', 'EV Level2 EVSE Num', 'EV DC Fast Count', 'Latitude', 'Longitude']]
-)
+# Handle missing values in numeric columns by filling with the mean
+data[numeric_cols] = data[numeric_cols].fillna(data[numeric_cols].mean())
 
-# Select features and standardize them
-features = EV_Data[['Latitude', 'Longitude', 'EV Level1 EVSE Num', 'EV Level2 EVSE Num', 'EV DC Fast Count']]
+# Handle missing values in categorical columns by filling with the most frequent value
+for col in categorical_cols:
+    data[col] = data[col].fillna(data[col].mode()[0])
+
+# Check if any missing values remain
+print(data.isnull().sum())
+
+
+# Encode categorical variables
+label_enc = LabelEncoder()
+for col in data.select_dtypes(include=['object']).columns:
+    data[col] = label_enc.fit_transform(data[col])
+
+# Automatically select numeric columns for scaling
+numeric_features = data.select_dtypes(include=[np.number]).columns
+
+# Scale numeric features
 scaler = StandardScaler()
-features_scaled = scaler.fit_transform(features)
+data[numeric_features] = scaler.fit_transform(data[numeric_features])
 
-# Perform KMeans clustering
-kmeans = KMeans(n_clusters=10, random_state=42)
-EV_Data['Cluster'] = kmeans.fit_predict(features_scaled)
-# Drop rows with any NaN values in the selected columns
-EV_Data.dropna(subset=['Latitude', 'Longitude', 'EV Level1 EVSE Num', 'EV Level2 EVSE Num', 'EV DC Fast Count'], inplace=True)
-
-# Proceed with clustering as before
-features = EV_Data[['Latitude', 'Longitude', 'EV Level1 EVSE Num', 'EV Level2 EVSE Num', 'EV DC Fast Count']]
-scaler = StandardScaler()
-features_scaled = scaler.fit_transform(features)
-
-kmeans = KMeans(n_clusters=10, random_state=42)
-EV_Data['Cluster'] = kmeans.fit_predict(features_scaled)
-
-# Set map center based on mean coordinates
-center_lat, center_lon = EV_Data['Latitude'].mean(), EV_Data['Longitude'].mean()
-ev_map = folium.Map(location=[center_lat, center_lon], zoom_start=10)
-
-# Add each charging station as a marker on the map
-for _, row in EV_Data.iterrows():
-    popup_text = (f"City: {row['City']}, Level 1: {row['EV Level1 EVSE Num']}, "
-                  f"Level 2: {row['EV Level2 EVSE Num']}, DC Fast: {row['EV DC Fast Count']}, Cluster: {row['Cluster']}")
-    folium.Marker(
-        location=[row['Latitude'], row['Longitude']],
-        popup=popup_text
-    ).add_to(ev_map)
-
-# Add cluster centroids to map
-for cluster_id in EV_Data['Cluster'].unique():
-    cluster_data = EV_Data[EV_Data['Cluster'] == cluster_id]
-    cluster_center = [cluster_data['Latitude'].mean(), cluster_data['Longitude'].mean()]
-    folium.Marker(
-        location=cluster_center,
-        popup=f"Cluster {cluster_id} Center",
-        icon=folium.Icon(color='red', icon='info-sign')
-    ).add_to(ev_map)
-
-# Save updated map with clusters
-ev_map.save('ev_charging_stations_clustered_map.html')
-
-# Display the clustered HTML map file in the notebook
-IFrame('ev_charging_stations_clustered_map.html', width=1000, height=500)
-
-# ************************************************************************************************************************
-
-import pandas as pd
+# Support Vector Regressor (SVM)
+from sklearn.svm import SVR
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_squared_error
+
+# Define features and target
+X = data.drop(['energy_kwh'], axis=1) 
+y = data['energy_kwh']
+
+# Split dataset into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# SVM
+svm_model = SVR(kernel='rbf')  # You can try different kernels such as 'linear' or 'poly'
+svm_model.fit(X_train, y_train)
+svm_pred = svm_model.predict(X_test)
+print("Support Vector Regressor (SVM) Results:")
+print(f"Mean Squared Error: {mean_squared_error(y_test, svm_pred)}")
+print(f"R^2 Score: {r2_score(y_test, svm_pred)}")
+
+# Random Forest Regressor
+rf_model = RandomForestRegressor(n_estimators=100, random_state=42)
+rf_model.fit(X_train, y_train)
+rf_pred = rf_model.predict(X_test)
+print("Random Forest Results:")
+print(f"Mean Squared Error: {mean_squared_error(y_test, rf_pred)}")
+print(f"R^2 Score: {r2_score(y_test, rf_pred)}")
+
+# Gradient Boosting Regressor
+gb_model = GradientBoostingRegressor(n_estimators=100, random_state=42)
+gb_model.fit(X_train, y_train)
+gb_pred = gb_model.predict(X_test)
+print("Gradient Boosting Results:")
+print(f"Mean Squared Error: {mean_squared_error(y_test, gb_pred)}")
+print(f"R^2 Score: {r2_score(y_test, gb_pred)}")
+
+from sklearn.neighbors import NearestNeighbors
 import numpy as np
 
+# Ensure we have a column representing chargers
+if "geopoint" not in data.columns:
+    raise ValueError("Dataset does not have a column representing charger usage (e.g., 'energy_kwh').")
 
-# Create a new 'Future Demand' column as a proxy for demand using available EV_Data
-# Here we add the count of chargers as a basic example of demand; adjust this as needed based on actual EV_Data availability
+# Charger locations: where energy_kwh > 0
+charger_locations = data[data["geopoint"] > 0][["latitude", "longitude"]]
 
-EV_Data['Future Demand'] = (
-    0.5 * EV_Data['EV Level1 EVSE Num'] + 
-    1.0 * EV_Data['EV Level2 EVSE Num'] + 
-    1.5 * EV_Data['EV DC Fast Count']
+# Potential locations: all rows (replace if filtering is needed)
+potential_locations = data[["latitude", "longitude"]]
+
+# Handle empty charger locations
+if charger_locations.empty:
+    raise ValueError("No charger locations found in the dataset.")
+
+# Compute distances to the nearest charger using Nearest Neighbors
+nbrs = NearestNeighbors(n_neighbors=1, algorithm="ball_tree").fit(charger_locations)
+distances, indices = nbrs.kneighbors(potential_locations)
+
+# Add the distances to the dataset
+data["distance_to_nearest_charger"] = distances
+
+# Simulate columns if missing
+if "population_density" not in data.columns:
+    print("Simulating 'population_density' column.")
+    data["population_density"] = np.random.randint(100, 10000, size=len(data))
+
+if "ev_adoption_rate" not in data.columns:
+    print("Simulating 'ev_adoption_rate' column.")
+    data["ev_adoption_rate"] = np.random.uniform(0.01, 0.3, size=len(data))
+
+
+# Define an Underserved Score 
+data["underserved_score"] = (
+    0.4 * data["population_density"]
+    + 0.3 * data["ev_adoption_rate"]
+    + 0.3 * data["distance_to_nearest_charger"]
 )
 
-# Fill NaN values in the 'Future Demand' column with the median value as a simple imputation
-EV_Data['Future Demand'].fillna(EV_Data['Future Demand'].median(), inplace=True)
+# Normalize the underserved score for comparison
+data["underserved_score"] = (
+    (data["underserved_score"] - data["underserved_score"].min())
+    / (data["underserved_score"].max() - data["underserved_score"].min())
+)
 
-# Define features (X) and target (y) for prediction
-X = EV_Data[['Latitude', 'Longitude', 'City', 'EV Level1 EVSE Num', 'EV Level2 EVSE Num', 'EV DC Fast Count']]
-y = EV_Data['Future Demand']
+# Check the results
+print(data[["latitude", "longitude", "distance_to_nearest_charger", "underserved_score"]].head())
 
-# Split the EV_Data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=40)
+# Visualize the distribution of the underserved score
+import matplotlib.pyplot as plt
+plt.figure(figsize=(10, 6))
+plt.hist(data["underserved_score"], bins=30, color="blue", alpha=0.7)
+plt.title("Distribution of Underserved Scores")
+plt.xlabel("Underserved Score")
+plt.ylabel("Frequency")
+plt.show()
 
-# Initialize and train a Random Forest Regressor
-rf_model = RandomForestRegressor(n_estimators=100, random_state=40)
-rf_model.fit(X_train, y_train)
+#test
+test_EV = np.array([[
+    -0.047283,  # start_date
+    1.244225,   # station_name
+    -1.330790,  # charging_time_hh_mm_ss
+    -1.294701,  # address_1
+    -0.267709,  # address_2
+    -1.271292,  # zip_postal_code
+    -0.055951,  # model_number
+    -0.339454,  # latitude
+    1.039291,   # longitude
+    -0.339454,  # geopoint
+]])
 
-# Predict and evaluate the model
-y_pred = rf_model.predict(X_test)
-mse = mean_squared_error(y_test, y_pred)
-print("Mean Squared Error:", mse)
+predicted_energy_kwh = rf_model.predict(test_EV)
+print("Predicted Energy (kWh):", predicted_energy_kwh)
 
-# Output the trained model’s performance
-print("Model Performance:")
-print("Mean Squared Error (MSE):", mse)
 
-# *********************************************************************************************************************
-# Example new input EV_Data (replace these values with realistic EV_Data as needed)
-new_data = pd.DataFrame({
-    'Latitude': [34.05],  # Example latitude
-    'Longitude': [-118.25],  # Example longitude
-    'City': [1],  # Numeric code for the city (assumes pre-encoding)
-    'EV Level1 EVSE Num': [10],  # Example number of level 1 chargers
-    'EV Level2 EVSE Num': [5],   # Example number of level 2 chargers
-    'EV DC Fast Count': [2]      # Example number of DC Fast chargers
-})
 
-# Preprocess the new EV_Data in the same way as the training EV_Data (scaling, filling NAs if needed)
 
-# Predict future demand using the trained model
-predicted_demand = rf_model.predict(new_data)
+*******************************************************************************************************************************************
 
-print("Predicted Future Demand for the new input:", predicted_demand[0])
+# Using the test dataset for energy prediction
 
+# Load the test dataset to inspect its structure
+import pandas as pd
+
+# File path for the uploaded test dataset
+test_file_path = "C:\\Users\\prana\\Downloads\\nnn\\NLP\\Dissertation test dataset.csv"
+
+# Load the test dataset
+test_data = pd.read_csv(test_file_path)
+
+# Display the first few rows of the test dataset for inspection
+test_data.head(), test_data.info()
+
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+import numpy as np
+
+#data Cleaning
+# Drop the specified columns
+test_data = test_data.drop(['fee', 'state_province', 'city'], axis=1)
+
+# Copy the test dataset to avoid altering the original
+test_data_processed = test_data.copy()
+
+# Separate numeric and categorical columns
+numeric_cols = test_data_processed.select_dtypes(include=[np.number]).columns
+categorical_cols = test_data_processed.select_dtypes(exclude=[np.number]).columns
+
+# Handle missing values
+# Fill numeric columns with the mean
+test_data_processed[numeric_cols] = test_data_processed[numeric_cols].fillna(test_data_processed[numeric_cols].mean())
+
+# Fill categorical columns with the mode
+for col in categorical_cols:
+    test_data_processed[col] = test_data_processed[col].fillna(test_data_processed[col].mode()[0])
+
+# Encode categorical columns
+label_encoders = {}
+for col in categorical_cols:
+    le = LabelEncoder()
+    test_data_processed[col] = le.fit_transform(test_data_processed[col])
+    label_encoders[col] = le  # Save the encoder for reference
+
+# Scale numerical columns (excluding the target variable if present)
+scaler = StandardScaler()
+scaled_features = scaler.fit_transform(test_data_processed[numeric_cols])
+
+# Replace scaled numeric columns in the DataFrame
+test_data_processed[numeric_cols] = scaled_features
+
+# Drop the target column 'energy_kwh' for predictions
+X_test_dataset = test_data_processed.drop(columns=["energy_kwh"])
+
+# Load rf_model and predict
+rf_model_predictions = rf_model.predict(X_test_dataset)
+
+# Add predictions back to the test dataset
+test_data["Predicted_energy_kwh"] = rf_model_predictions
+
+# Display the updated test dataset with predictions
+test_data.head()
