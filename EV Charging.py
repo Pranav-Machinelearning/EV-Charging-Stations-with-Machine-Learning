@@ -100,11 +100,11 @@ IFrame("ev_charger_distribution.html", width=800, height=600)
 
 # Bar plots for categorical features
 categorical_columns = data.select_dtypes(include=['object']).columns
-for col in categorical_columns:
-    plt.figure(figsize=(12, 6))
-    sns.countplot(y=col, data=data, palette='viridis')
-    plt.title(f"Count of {col}")
-    plt.show()
+# for col in categorical_columns:
+#     plt.figure(figsize=(12, 6))
+#     sns.countplot(y=col, data=data, palette='viridis')
+#     plt.title(f"Count of {col}")
+#     plt.show()
 
 # Handle missing values (example: fillna with median for numerical, mode for categorical)
 data[numerical_columns] = data[numerical_columns].fillna(data[numerical_columns].median())
