@@ -322,3 +322,51 @@ test_data["Predicted_energy_kwh"] = rf_model_predictions
 
 # Display the updated test dataset with predictions
 test_data.head()
+
+# Import necessary libraries
+import matplotlib.pyplot as plt
+
+# Plot comparison of actual vs predicted energy consumption for the three models
+def plot_comparison(y_test, svm_pred, rf_pred, gb_pred):
+    """
+    Plots comparison of predicted vs actual values for SVM, Random Forest, and Gradient Boosting models.
+    Args:
+        y_test: Actual target values from the test set
+        svm_pred: Predictions made by SVM
+        rf_pred: Predictions made by Random Forest Regressor
+        gb_pred: Predictions made by Gradient Boosting Regressor
+    """
+    
+    # Create subplots for visualization
+    fig, axs = plt.subplots(1, 3, figsize=(18, 5))
+
+    # Plot SVM predictions
+    axs[0].scatter(y_test, svm_pred, color='blue', alpha=0.6)
+    axs[0].plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', linewidth=2)  # Diagonal line
+    axs[0].set_xlabel('Actual Energy Consumption')
+    axs[0].set_ylabel('Predicted Energy Consumption')
+    axs[0].set_title(f"SVM Predictions\nMSE: {mean_squared_error(y_test, svm_pred):.4f}, R²: {r2_score(y_test, svm_pred):.4f}")
+
+    # Plot Random Forest predictions
+    axs[1].scatter(y_test, rf_pred, color='green', alpha=0.6)
+    axs[1].plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', linewidth=2)  # Diagonal line
+    axs[1].set_xlabel('Actual Energy Consumption')
+    axs[1].set_ylabel('Predicted Energy Consumption')
+    axs[1].set_title(f"Random Forest Predictions\nMSE: {mean_squared_error(y_test, rf_pred):.4f}, R²: {r2_score(y_test, rf_pred):.4f}")
+
+    # Plot Gradient Boosting predictions
+    axs[2].scatter(y_test, gb_pred, color='purple', alpha=0.6)
+    axs[2].plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', linewidth=2)  # Diagonal line
+    axs[2].set_xlabel('Actual Energy Consumption')
+    axs[2].set_ylabel('Predicted Energy Consumption')
+    axs[2].set_title(f"Gradient Boosting Predictions\nMSE: {mean_squared_error(y_test, gb_pred):.4f}, R²: {r2_score(y_test, gb_pred):.4f}")
+
+    # Set common title
+    fig.suptitle("Comparison of Actual vs Predicted Energy Consumption\nUsing SVM, Random Forest, and Gradient Boosting Models", fontsize=16)
+
+    # Display the plot
+    plt.tight_layout()
+    plt.show()
+
+# Call the function to visualize the comparison
+plot_comparison(y_test, svm_pred, rf_pred, gb_pred)
