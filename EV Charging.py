@@ -157,7 +157,7 @@ y = data['energy_kwh']
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 # SVM
-svm_model = SVR(kernel='rbf')  # You can try different kernels such as 'linear' or 'poly'
+svm_model = SVR(kernel='rbf') 
 svm_model.fit(X_train, y_train)
 svm_pred = svm_model.predict(X_test)
 print("Support Vector Regressor (SVM) Results:")
