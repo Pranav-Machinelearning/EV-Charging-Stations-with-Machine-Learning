@@ -98,7 +98,7 @@ map.save("ev_charger_distribution.html")
 from IPython.display import IFrame
 IFrame("ev_charger_distribution.html", width=800, height=600)
 
-# Bar plots for categorical features
+# Bar plots for categorical features -------->> Commented because taking to much time to run the bar plots.
 categorical_columns = data.select_dtypes(include=['object']).columns
 # for col in categorical_columns:
 #     plt.figure(figsize=(12, 6))
@@ -157,11 +157,12 @@ y = data['energy_kwh']
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 # SVM
-svm_model = SVR(kernel='rbf') 
+svm_model = SVR(kernel='rbf')  # You can try different kernels such as 'linear' or 'poly'
 svm_model.fit(X_train, y_train)
 svm_pred = svm_model.predict(X_test)
 print("Support Vector Regressor (SVM) Results:")
 print(f"Mean Squared Error: {mean_squared_error(y_test, svm_pred)}")
+print(f"Root Mean Squared Error: {np.sqrt(mean_squared_error(y_test, svm_pred))}")
 print(f"R^2 Score: {r2_score(y_test, svm_pred)}")
 
 # Random Forest Regressor
@@ -170,6 +171,7 @@ rf_model.fit(X_train, y_train)
 rf_pred = rf_model.predict(X_test)
 print("Random Forest Results:")
 print(f"Mean Squared Error: {mean_squared_error(y_test, rf_pred)}")
+print(f"Root Mean Squared Error: {np.sqrt(mean_squared_error(y_test, rf_pred))}")
 print(f"R^2 Score: {r2_score(y_test, rf_pred)}")
 
 # Gradient Boosting Regressor
@@ -178,6 +180,7 @@ gb_model.fit(X_train, y_train)
 gb_pred = gb_model.predict(X_test)
 print("Gradient Boosting Results:")
 print(f"Mean Squared Error: {mean_squared_error(y_test, gb_pred)}")
+print(f"Root Mean Squared Error: {np.sqrt(mean_squared_error(y_test, gb_pred))}")
 print(f"R^2 Score: {r2_score(y_test, gb_pred)}")
 
 from sklearn.neighbors import NearestNeighbors
