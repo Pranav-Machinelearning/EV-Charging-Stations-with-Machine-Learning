@@ -373,3 +373,53 @@ def plot_comparison(y_test, svm_pred, rf_pred, gb_pred):
 
 # Call the function to visualize the comparison
 plot_comparison(y_test, svm_pred, rf_pred, gb_pred)
+
+
+
+#Independent comparison 
+
+import matplotlib.pyplot as plt
+from sklearn.metrics import mean_squared_error, r2_score
+
+
+# Function to plot SVM comparison
+def plot_svm_comparison(y_test, svm_pred):
+    plt.figure(figsize=(6, 5))
+    plt.scatter(y_test, svm_pred, color='blue', alpha=0.6)
+    plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', linewidth=2)  # Diagonal line
+    plt.xlabel('Actual Energy Consumption')
+    plt.ylabel('Predicted Energy Consumption')
+    plt.title(f"SVM Predictions\nMSE: {mean_squared_error(y_test, svm_pred):.4f}, R²: {r2_score(y_test, svm_pred):.4f}")
+    plt.tight_layout()
+    plt.show()
+
+
+# Function to plot Random Forest comparison
+def plot_rf_comparison(y_test, rf_pred):
+    plt.figure(figsize=(6, 5))
+    plt.scatter(y_test, rf_pred, color='green', alpha=0.6)
+    plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', linewidth=2)  # Diagonal line
+    plt.xlabel('Actual Energy Consumption')
+    plt.ylabel('Predicted Energy Consumption')
+    plt.title(f"Random Forest Predictions\nMSE: {mean_squared_error(y_test, rf_pred):.4f}, R²: {r2_score(y_test, rf_pred):.4f}")
+    plt.tight_layout()
+    plt.show()
+
+
+# Function to plot Gradient Boosting comparison
+def plot_gb_comparison(y_test, gb_pred):
+    plt.figure(figsize=(6, 5))
+    plt.scatter(y_test, gb_pred, color='purple', alpha=0.6)
+    plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', linewidth=2)  # Diagonal line
+    plt.xlabel('Actual Energy Consumption')
+    plt.ylabel('Predicted Energy Consumption')
+    plt.title(f"Gradient Boosting Predictions\nMSE: {mean_squared_error(y_test, gb_pred):.4f}, R²: {r2_score(y_test, gb_pred):.4f}")
+    plt.tight_layout()
+    plt.show()
+
+
+# Call visualization functions one by one
+plot_svm_comparison(y_test, svm_pred)
+plot_rf_comparison(y_test, rf_pred)
+plot_gb_comparison(y_test, gb_pred)
+
